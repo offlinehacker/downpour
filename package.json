@@ -4,7 +4,7 @@
   "description": "Statefull workflow task processing library",
   "main": "index.js",
   "scripts": {
-    "test": "npm test"
+    "test": "mocha test"
   },
   "author": "Jaka Hudoklin <jakahudoklin@gmail.com> (http://www.jakahudoklin.com)",
   "license": "MIT",
