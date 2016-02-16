@@ -6,9 +6,10 @@ const workflow = {
   tasks: {
     validate: {
       action: 'validate',
-      provides: '^js "validated"',
+      provides: ['^js "validated"'],
+      timeout:20,
       params: {
-        a: 'b'
+        a: '$.a'
       },
       to: 'value'
     },
@@ -28,7 +29,7 @@ describe('Runner', () => {
       this.runner.registerWorkflow(workflow);
     });
 
-    it('shoudl run workflow', () => {
+    it('should run workflow', () => {
       this.runner.registerAction('validate', (params) => {
         return params.a;
       });
@@ -37,7 +38,7 @@ describe('Runner', () => {
         return context.value;
       });
 
-      return this.runner.run('test').then(result => {
+      return this.runner.run('test', {a: 'b'}).then(result => {
         expect(result).to.be.equal('b');
       });
     });

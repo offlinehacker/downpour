@@ -28,10 +28,12 @@ class StringTemplate {
   }
 
   static create(template) {
-    if (template.trim().startsWith('^js')) {
-      return new JSTemplate(template.trim().slice(3));
-    } else if(template.trim().startsWith('$')) {
-      return new JSONPathTemplate(template);
+    if (_.isString(template)) {
+      if (template.trim().startsWith('^js')) {
+        return new JSTemplate(template.trim().slice(3));
+      } else if(template.trim().startsWith('$')) {
+        return new JSONPathTemplate(template);
+      }
     }
 
     return new StringTemplate(template);
@@ -69,7 +71,7 @@ class Template {
     this.data = data;
     this.process = process;
 
-    if (_.isString(data)) {
+    if (!_.isObject(data)) {
       this.template = StringTemplate.create(data);
     } else {
       this.template = _.deepMap(data, (value, path) => {

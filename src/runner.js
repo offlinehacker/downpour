@@ -2,6 +2,7 @@
 
 const _ = require('lodash');
 const assert = require('hoek').assert;
+const Promise = require('bluebird');
 
 const Workflow = require('./workflow');
 const Action = require('./action');
@@ -67,21 +68,26 @@ class Runner {
       return Promise.all(_.map(tasksToRun, task => {
         const action = this.actions[task.action];
         const details = { task: task, state: state, runner: this };
-        return Promise.resolve(action.run(task.params, context, details))
-          .then(value => {
+        var running = Promise.resolve(action.run(task.params, context, details));
+
+        if (task.timeout) {
+          running = running.timeout(task.timeout)
+        }
+
+        return running.then(value => {
+          return state
+            .addSteps(task.provides)
+            .return({ task: task, value: value });
+        })
+        .catch(err => {
+          if (task.error) {
             return state
-              .addSteps(task.provides)
-              .return({ task: task, value: value });
-          })
-          .catch(err => {
-            if (task.error) {
-              return state
-                .addSteps(task.error)
-                .return({ task: task, error: err });
-            } else {
-              throw err;
-            }
-          });
+              .addSteps(task.error)
+              .return({ task: task, error: err });
+          } else {
+            throw err;
+          }
+        });
       })).then(results => {
         _.forEach(results, result => {
           if (result.task.to) {
