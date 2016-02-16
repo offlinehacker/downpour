@@ -1,7 +1,8 @@
 const expect = require('chai').expect;
 const Runner = require('../src/runner');
+const Workflow = require('../src/workflow');
 
-const workflow = {
+const workflow = new Workflow({
   name: 'test',
   tasks: {
     validate: {
@@ -20,25 +21,24 @@ const workflow = {
       to: 'result'
     }
   }
-};
+});
 
 describe('Runner', () => {
   describe('simple', () => {
     beforeEach(() => {
       this.runner = new Runner();
-      this.runner.registerWorkflow(workflow);
     });
 
     it('should run workflow', () => {
-      this.runner.registerAction('validate', (params) => {
+      this.runner.actions.register('validate', (params) => {
         return params.a;
       });
 
-      this.runner.registerAction('save', (params, context) => {
+      this.runner.actions.register('save', (params, context) => {
         return context.value;
       });
 
-      return this.runner.run('test', {a: 'b'}).then(result => {
+      return this.runner.run(workflow, {a: 'b'}).then(result => {
         expect(result).to.be.equal('b');
       });
     });

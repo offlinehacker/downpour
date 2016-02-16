@@ -6,36 +6,12 @@ const Promise = require('bluebird');
 
 const Workflow = require('./workflow');
 const Action = require('./action');
+const ActionManager = require('./actions');
 const State = require('./state');
 
 class Runner {
-  constructor() {
-    this.workflows = {};
-    this.actions = {};
-  }
-
-  registerWorkflow(workflow) {
-    if (!(workflow instanceof Workflow)) {
-      workflow = new Workflow(workflow);
-    }
-
-    assert(!this.workflows[workflow.name], 'Workflow with this name already exists');
-
-    this.workflows[workflow.name] = workflow;
-  }
-
-  registerAction(name, task) {
-    if (!arguments[1]) {
-      const action = arguments[1];
-      assert(action instanceof Action, "Task not instance of Task");
-
-      this.actions[action.name] = action;
-    } else {
-      const name = arguments[0];
-      const method = arguments[1];
-
-      this.actions[name] = Action.fromMethod(name, method);
-    }
+  constructor(actionManager) {
+    this.actions = actionManager || new ActionManager();
   }
 
   _shouldRun(task, state) {
@@ -66,7 +42,7 @@ class Runner {
       });
 
       return Promise.all(_.map(tasksToRun, task => {
-        const action = this.actions[task.action];
+        const action = this.actions.get(task.action);
         const details = { task: task, state: state, runner: this };
         var running = Promise.resolve(action.run(task.params, context, details));
 
@@ -104,12 +80,11 @@ class Runner {
     });
   }
 
-  run(name, context, state) {
-    const workflow = this.workflows[name];
+  run(workflow, context, state) {
     state = state || new State();
     context = context || {};
 
-    assert(workflow, 'Workflow not found');
+    assert(workflow instanceof Workflow, 'value not instance of Workflow');
     assert(_.isObject(context), 'context is not an object');
     assert(state instanceof State, 'state is not instanceof State');
 
