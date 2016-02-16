@@ -37,41 +37,64 @@ class Runner {
     }
   }
 
-  _process(workflow, context, state) {
-    const tasksToRun = _.filter(workflow.tasks, task => {
-      return task.shouldRun(state);
-    });
+  _shouldRun(task, state) {
+    if (!_.isEmpty(_.intersection(task.provides, state.steps))) {
+      return false;
+    }
 
-    return Promise.all(_.map(tasksToRun, task => {
-      const action = this.actions[task.action];
-      const details = { task: task, state: state, runner: this };
-      return Promise.resolve(action.run(task.params, context, details))
-        .then(value => {
-          return state
-            .addSteps(task.provides)
-            .return({ task: task, value: value });
-        })
-        .catch(err => {
-          if (task.error) {
-            return state
-              .addSteps(task.error)
-              .return({ task: task, error: err });
-          } else {
-            throw err;
-          }
-        });
-    })).then(results => {
-      _.forEach(results, result => {
-        if (result.task.to) {
-          context[result.task.to] = result.value;
-        }
+    if (!_.isEmpty(_.intersection(task.skip, state.steps))) {
+      return false;
+    }
+
+    if(
+      _.intersection(task.depends, state.steps).length ==
+      task.depends.length
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  _process(workflow, context, state) {
+    return Promise.all(
+      _.map(workflow.tasks, task => task.eval(context))
+    ).then(tasks => {
+      const tasksToRun = _.filter(tasks, task => {
+        return this._shouldRun(task, state);
       });
 
-      if (state.finished) {
-        return context.result;
-      }
+      return Promise.all(_.map(tasksToRun, task => {
+        const action = this.actions[task.action];
+        const details = { task: task, state: state, runner: this };
+        return Promise.resolve(action.run(task.params, context, details))
+          .then(value => {
+            return state
+              .addSteps(task.provides)
+              .return({ task: task, value: value });
+          })
+          .catch(err => {
+            if (task.error) {
+              return state
+                .addSteps(task.error)
+                .return({ task: task, error: err });
+            } else {
+              throw err;
+            }
+          });
+      })).then(results => {
+        _.forEach(results, result => {
+          if (result.task.to) {
+            context[result.task.to] = result.value;
+          }
+        });
 
-      return this._process(workflow, context, state);
+        if (state.finished) {
+          return context.result;
+        }
+
+        return this._process(workflow, context, state);
+      });
     });
   }
 

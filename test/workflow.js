@@ -6,7 +6,7 @@ const workflow = {
   tasks: {
     validate: {
       action: 'validate',
-      provides: 'validated',
+      provides: '^js "validated"',
       params: {
         a: 'b'
       },
@@ -14,7 +14,7 @@ const workflow = {
     },
     save: {
       action: 'save',
-      depends: 'validated',
+      depends: 'validated'  ,
       provides: 'finished',
       to: 'result'
     }

@@ -2,8 +2,10 @@
 
 const _ = require('lodash');
 const assert = require('hoek').assert;
+const Promise = require('bluebird');
 
 const schema = require('./schema');
+const Template = require('./template');
 
 class Task {
   constructor(task) {
@@ -18,46 +20,45 @@ class Task {
   }
 
   get params() {
-    return this.task.params;
+    return new Template(this.task.params);
   }
 
   get timeout() {
-    return this.task.timeout;
+    return new Template(this.task.timeout);
   }
 
   get provides() {
-    return _.isArray(this.task.provides) ? this.task.provides : [this.task.provides];
+    return new Template(this.task.provides, result => {
+      return _.isArray(result) ? result : [result];
+    });
   }
 
   get depends() {
-    return _.isArray(this.task.depends) ? this.task.depends : [this.task.depends];
+    return new Template(this.task.depends, result => {
+      return _.isArray(result) ? result : [result];
+    });
   }
 
   get skip() {
-    return _.isArray(this.task.skip) ? this.task.skip : [this.task.skip];
+    return new Template(this.task.skip, result => {
+      return _.isArray(result) ? result : [result];
+    });
   }
 
   get to() {
     return this.task.to;
   }
 
-  shouldRun(state) {
-    if (!_.isEmpty(_.intersection(this.provides, state.steps))) {
-      return false;
-    }
-
-    if (!_.isEmpty(_.intersection(this.skip, state.steps))) {
-      return false;
-    }
-
-    if(
-      _.intersection(this.depends, state.steps).length ==
-      this.depends.length
-    ) {
-      return true;
-    }
-
-    return false;
+  eval(context) {
+    return Promise.props({
+      action: this.action,
+      timeout: this.timeout.eval(context),
+      params: this.params.eval(context),
+      provides: this.provides.eval(context),
+      depends: this.depends.eval(context),
+      skip: this.skip.eval(context),
+      to: this.to
+    });
   }
 }
 

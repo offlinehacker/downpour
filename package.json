@@ -1,5 +1,5 @@
 {
-  "name": "drawnpour",
+  "name": "dawnpour",
   "version": "0.0.0",
   "description": "Statefull workflow task processing library",
   "main": "index.js",
@@ -10,10 +10,13 @@
   "license": "MIT",
   "dependencies": {
     "bluebird": "^3.3.1",
+    "bluebird-deep-props": "^1.0.4",
     "hoek": "^3.0.4",
     "joi": "^8.0.1",
     "jsonpath": "^0.2.2",
-    "lodash": "^4.3.0"
+    "jsonpath-plus": "^0.14.0",
+    "lodash": "^4.3.0",
+    "yamljs": "^0.2.4"
   },
   "devDependencies": {
     "chai": "^3.5.0",

@@ -19,7 +19,8 @@ class Workflow {
   }
 
   get tasks() {
-    return _.mapValues(this.workflow.tasks, task => {
+    if (this._tasks) return this._tasks;
+    return this._tasks = _.mapValues(this.workflow.tasks, task => {
       return new Task(task);
     });
   }
