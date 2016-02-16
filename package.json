@@ -1,7 +1,7 @@
 {
   "name": "drawnpour",
   "version": "0.0.0",
-  "description": "Workflow task processing library",
+  "description": "Statefull workflow task processing library",
   "main": "index.js",
   "scripts": {
     "test": "npm test"
