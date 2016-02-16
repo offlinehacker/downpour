@@ -1,0 +1,23 @@
+{
+  "name": "drawnpour",
+  "version": "0.0.0",
+  "description": "Workflow task processing library",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "Jaka Hudoklin <jakahudoklin@gmail.com> (http://www.jakahudoklin.com)",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.3.1",
+    "hoek": "^3.0.4",
+    "joi": "^8.0.1",
+    "jsonpath": "^0.2.2",
+    "lodash": "^4.3.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5",
+    "npm-release": "^1.0.0"
+  }
+}
