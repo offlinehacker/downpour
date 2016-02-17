@@ -21,8 +21,9 @@ class ActionManager {
     } else {
       const name = arguments[0];
       const method = arguments[1];
+      const context = arguments[2];
 
-      this.actions.push(Action.fromMethod(name, method));
+      this.actions.push(Action.fromMethod(name, method, context));
     }
   }
 }

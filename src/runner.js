@@ -4,91 +4,58 @@ const _ = require('lodash');
 const assert = require('hoek').assert;
 const Promise = require('bluebird');
 
-const Workflow = require('./workflow');
-const Action = require('./action');
 const ActionManager = require('./actions');
+const Action = require('./action.js');
+const Workflow = require('./workflow');
 const State = require('./state');
+const Template = require('./template');
 
 class Runner {
-  constructor(actionManager) {
-    this.actions = actionManager || new ActionManager();
+  constructor() {
+    this.actions = new ActionManager();
+    this.workflows = {};
+
+    this.actions.register('workflow', this._callWorkflow, this);
   }
 
-  _shouldRun(task, state) {
-    if (!_.isEmpty(_.intersection(task.provides, state.steps))) {
-      return false;
+  register(workflow) {
+    if (!(workflow instanceof Workflow)) {
+      workflow = new Workflow(workflow);
     }
 
-    if (!_.isEmpty(_.intersection(task.skip, state.steps))) {
-      return false;
-    }
-
-    if(
-      _.intersection(task.depends, state.steps).length ==
-      task.depends.length
-    ) {
-      return true;
-    }
-
-    return false;
+    this.workflows[workflow.name] = workflow;
   }
 
-  _process(workflow, context, state) {
-    return Promise.all(
-      _.map(workflow.tasks, task => task.eval(context))
-    ).then(tasks => {
-      const tasksToRun = _.filter(tasks, task => {
-        return this._shouldRun(task, state);
-      });
+  _callWorkflow(params, context, options) {
+    var workflow;
 
-      return Promise.all(_.map(tasksToRun, task => {
-        const action = this.actions.get(task.action);
-        const details = { task: task, state: state, runner: this };
-        var running = Promise.resolve(action.run(task.params, context, details));
+    if (params.workflow) {
+      workflow = options.task._workflow || new Workflow(params.workflow);
+    } else if(params.name && this.workflows[params.name]) {
+      workflow = this.workflows[params.name];
+    } else {
+      throw new Error('workflow not specified');
+    }
 
-        if (task.timeout) {
-          running = running.timeout(task.timeout)
-        }
+    if (options.task.staticParams) {
+      task._workflow = workflow;
+    }
 
-        return running.then(value => {
-          return state
-            .addSteps(task.provides)
-            .return({ task: task, value: value });
-        })
-        .catch(err => {
-          if (task.error) {
-            return state
-              .addSteps(task.error)
-              .return({ task: task, error: err });
-          } else {
-            throw err;
-          }
-        });
-      })).then(results => {
-        _.forEach(results, result => {
-          if (result.task.to) {
-            context[result.task.to] = result.value;
-          }
-        });
-
-        if (state.finished) {
-          return context.result;
-        }
-
-        return this._process(workflow, context, state);
-      });
-    });
+    context = params.inherit ? context : params.context;
+    return workflow.run(this.actions, context);
   }
 
-  run(workflow, context, state) {
+  run(name, context, state) {
+    const workflow = this.workflows[name];
+
     state = state || new State();
     context = context || {};
 
-    assert(workflow instanceof Workflow, 'value not instance of Workflow');
+    assert(workflow instanceof Workflow, 'workflow not instance of Workflow');
     assert(_.isObject(context), 'context is not an object');
     assert(state instanceof State, 'state is not instanceof State');
 
-    return this._process(workflow, context, state);
+    return workflow.run(this.actions, context, state);
   }
 }
 

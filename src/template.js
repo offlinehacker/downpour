@@ -18,7 +18,7 @@ _.mixin({
   deepMap: deepMap
 });
 
-class StringTemplate {
+class ValueTemplate {
   constructor(template) {
     this.template = template;
   }
@@ -36,30 +36,39 @@ class StringTemplate {
       }
     }
 
-    return new StringTemplate(template);
+    return new ValueTemplate(template);
   }
 }
 
-class JSTemplate extends StringTemplate {
+class JSTemplate extends ValueTemplate {
   constructor(data) {
     super(data);
 
     this.script = new vm.Script(this.template);
+    this.context = vm.createContext(context);
+    this.context._ = _;
   }
-  eval(context) {
-    if(!this.context || this.context != context) {
-      this.context = new vm.createContext(_.extend({_: _}, context));
-    }
 
+  eval(context) {
+    // Context creation is slow, so create context only once and
+    // reuse it in other executions
+    for (var member in this.context) {
+      if (member != '_') delete this.context[member];
+    }
+    for (var member in context) this.context[member] = context[member];
+
+    var result;
     try {
-      return Promise.resolve(this.script.runInContext(this.context));
+      result = Promise.resolve(this.script.runInContext(this.context));
     } catch(e) {
       return Promise.reject(e);
     }
+
+    return result;
   }
 }
 
-class JSONPathTemplate extends StringTemplate {
+class JSONPathTemplate extends ValueTemplate {
   eval(context) {
     const result = JSONPath({ path: this.template, json: context });
     return Promise.resolve(_.first(result));
@@ -72,10 +81,10 @@ class Template {
     this.process = process;
 
     if (!_.isObject(data)) {
-      this.template = StringTemplate.create(data);
+      this.template = ValueTemplate.create(data);
     } else {
       this.template = _.deepMap(data, (value, path) => {
-        return StringTemplate.create(value);
+        return ValueTemplate.create(value);
       });
     }
   }
@@ -83,7 +92,7 @@ class Template {
   eval(context) {
     var result;
 
-    if (this.template instanceof StringTemplate) {
+    if (this.template instanceof ValueTemplate) {
       result = this.template.eval(context);
     } else {
       result = Promise.deepProps(
@@ -94,5 +103,9 @@ class Template {
     return this.process ? result.then(this.process) : result;
   }
 }
+
+Template.JSTemplate = JSTemplate;
+Template.JSONPathTemplate = JSONPathTemplate;
+Template.ValueTemplate = ValueTemplate;
 
 module.exports = Template;

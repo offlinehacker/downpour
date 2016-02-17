@@ -1,46 +1,59 @@
-const expect = require('chai').expect;
-const Runner = require('../src/runner');
-const Workflow = require('../src/workflow');
+'use strict';
 
-const workflow = new Workflow({
+const expect = require('chai').expect;
+
+const Runner = require('../src/runner');
+
+const workflow = {
   name: 'test',
+  timeout: 20,
   tasks: {
     validate: {
       action: 'validate',
-      provides: ['^js "validated"'],
-      timeout:20,
+      provides: ['^js if(a == "b") {_.toLower("validated")}'],
+      timeout: '^js 20',
       params: {
-        a: '$.a'
+        a: '^js a'
       },
       to: 'value'
     },
     save: {
-      action: 'save',
-      depends: 'validated'  ,
-      provides: 'finished',
+      action: 'workflow',
+      depends: 'validated',
+      params: {
+        inherit: true,
+        workflow: {
+          tasks: {
+            save: {
+              action: 'save',
+              provides: '^js "finished"',
+              to: 'result'
+            }
+          }
+        }
+      },
+      provides: '^js "finished"',
       to: 'result'
     }
   }
-});
+};
 
-describe('Runner', () => {
-  describe('simple', () => {
-    beforeEach(() => {
-      this.runner = new Runner();
+describe('runner', () => {
+  it('should run sub workflow', () => {
+    const runner = new Runner();
+
+    runner.register(workflow);
+
+    runner.actions.register('validate', (params) => {
+      return params.a;
     });
 
-    it('should run workflow', () => {
-      this.runner.actions.register('validate', (params) => {
-        return params.a;
-      });
+    runner.actions.register('save', (params, context) => {
+      return context.value;
+    });
 
-      this.runner.actions.register('save', (params, context) => {
-        return context.value;
-      });
-
-      return this.runner.run(workflow, {a: 'b'}).then(result => {
-        expect(result).to.be.equal('b');
-      });
+    return runner.run('test', {a: 'b'}).then(result => {
+      expect(result).to.be.equal('b');
     });
   });
 });

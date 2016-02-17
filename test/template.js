@@ -11,7 +11,7 @@ describe('Template', () => {
   });
 
   it('should template js', () => {
-    const template = new Template('^js _.toUpper(animal)');
+    const template = new Template('^js animal.toUpperCase()');
     return template.eval({animal: 'kitten'}).then(result => {
       expect(result).to.be.equal('KITTEN');
     });
@@ -26,7 +26,7 @@ describe('Template', () => {
 
   it('should template object', () => {
     const template = new Template({
-      js: '^js _.toUpper(animal)',
+      js: '^js animal.toUpperCase()',
       deep: {
         path: '$.animal',
         plain: 'pussy'

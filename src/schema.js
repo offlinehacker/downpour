@@ -8,6 +8,7 @@ const steps = Joi.alternatives().try([
 ]).default([]);
 
 const Task = Joi.object({
+  name: Joi.string(),
   action: Joi.string().required(),
   params: Joi.any().optional(),
   provides: steps,
@@ -18,8 +19,9 @@ const Task = Joi.object({
 });
 
 const Workflow = Joi.object({
-  name: Joi.string().required(),
-  tasks: Joi.object().pattern(/.*/, Task).required()
+  name: Joi.string().optional(),
+  tasks: Joi.object().pattern(/.*/, Task).required(),
+  timeout: Joi.number().integer().optional()
 });
 
 module.exports = {
